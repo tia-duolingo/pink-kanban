@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   /* ---------- Pink Retro Theme ---------- */
   :root {
@@ -21,8 +22,7 @@
     --hot: #ff0080;
     --cyan: #6fe9ff;
     --yellow: #ffe066;
-    --shadow: 0 0 0 2px #000, 4px 4px 0 #000;
-    --shadow-pink: 0 0 12px rgba(255,62,170,0.6);
+    --green: #7dffac;
   }
 
   * { box-sizing: border-box; }
@@ -40,7 +40,6 @@
     overflow-x: hidden;
   }
 
-  /* CRT scanline overlay */
   body::before {
     content: '';
     position: fixed; inset: 0;
@@ -80,26 +79,37 @@
     border: 2px solid var(--pink);
     cursor: pointer;
     box-shadow: 3px 3px 0 #000;
-    transition: transform 0.05s ease;
     text-transform: uppercase;
     letter-spacing: 1px;
+    display: inline-flex; align-items: center; gap: 6px;
   }
   .tab:hover { background: var(--panel-2); }
   .tab.active {
     background: var(--pink);
     color: #1a0723;
-    text-shadow: none;
     box-shadow: 3px 3px 0 #000, 0 0 16px var(--pink);
   }
+  .tab .pub-dot {
+    display: inline-block; width: 8px; height: 8px;
+    border-radius: 50%; background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+  }
   .tab .x {
-    margin-left: 6px;
+    margin-left: 4px;
     color: #1a0723;
     font-weight: bold;
     opacity: 0.6;
   }
   .tab .x:hover { opacity: 1; }
 
-  .header-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .header-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .user-chip {
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    color: var(--pink-soft);
+    padding: 0 10px;
+    border-right: 2px solid var(--pink);
+  }
 
   /* ---------- Buttons ---------- */
   button.btn, .btn {
@@ -127,28 +137,48 @@
   }
   button.btn.ghost:hover { background: rgba(255,62,170,0.15); }
   button.btn.danger { background: var(--hot); color: #fff; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
 
   /* ---------- Board Area ---------- */
-  main {
-    padding: 20px 24px 80px;
-    overflow-x: auto;
-  }
+  main { padding: 20px 24px 80px; overflow-x: auto; }
   .board-title-row {
-    display: flex; align-items: baseline; gap: 14px; margin-bottom: 16px; flex-wrap: wrap;
+    display: flex; align-items: center; gap: 14px; margin-bottom: 16px; flex-wrap: wrap;
   }
   .board-title {
     font-family: 'Press Start 2P', monospace;
-    font-size: 14px;
-    color: var(--pink-soft);
-    text-shadow: 2px 2px 0 #000;
-    margin: 0;
+    font-size: 14px; color: var(--pink-soft);
+    text-shadow: 2px 2px 0 #000; margin: 0;
   }
   .board-meta { font-size: 14px; color: var(--pink-soft); opacity: 0.7; }
-
-  .columns {
-    display: flex; gap: 18px; align-items: flex-start;
-    min-height: 60vh;
+  .public-badge {
+    font-family: 'VT323', monospace;
+    font-size: 14px;
+    padding: 2px 8px;
+    background: var(--green); color: #1a0723;
+    border: 2px solid #000;
+    text-transform: uppercase; letter-spacing: 1px;
   }
+  .private-badge {
+    font-family: 'VT323', monospace;
+    font-size: 14px;
+    padding: 2px 8px;
+    background: var(--panel-2); color: var(--pink-soft);
+    border: 2px solid var(--pink);
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .read-only-banner {
+    background: rgba(255,224,102,0.15);
+    border: 2px solid var(--yellow);
+    color: var(--yellow);
+    padding: 8px 12px;
+    margin-bottom: 14px;
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .columns { display: flex; gap: 18px; align-items: flex-start; min-height: 60vh; }
 
   .column {
     background: var(--panel);
@@ -201,8 +231,7 @@
     padding: 10px;
     display: flex; flex-direction: column; gap: 10px;
     overflow-y: auto;
-    flex: 1;
-    min-height: 60px;
+    flex: 1; min-height: 60px;
   }
   .cards.drag-over {
     background: rgba(255,62,170,0.10);
@@ -336,6 +365,43 @@
     margin-top: 14px;
   }
 
+  /* ---------- Auth screen ---------- */
+  .auth-screen {
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .auth-card {
+    background: var(--panel);
+    border: 3px solid var(--pink);
+    box-shadow: 8px 8px 0 #000, 0 0 30px rgba(255,62,170,0.5);
+    padding: 32px;
+    max-width: 440px; width: 100%;
+    text-align: center;
+  }
+  .auth-card h1 {
+    margin: 0 0 8px;
+    font-size: 22px;
+  }
+  .auth-card p {
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    color: var(--pink-soft);
+    margin: 8px 0 22px;
+    line-height: 1.4;
+  }
+  .auth-card .field { text-align: left; }
+  .auth-msg {
+    margin-top: 14px;
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    min-height: 22px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .auth-msg.ok { color: var(--green); }
+  .auth-msg.err { color: var(--hot); }
+
   .empty-state {
     text-align: center;
     padding: 60px 20px;
@@ -349,55 +415,73 @@
     position: fixed;
     bottom: 24px; left: 50%;
     transform: translateX(-50%) translateY(100px);
-    background: var(--pink);
-    color: #1a0723;
+    background: var(--pink); color: #1a0723;
     padding: 10px 18px;
     border: 2px solid #000;
     box-shadow: 4px 4px 0 #000;
     font-family: 'VT323', monospace;
     font-size: 18px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    text-transform: uppercase; letter-spacing: 1px;
     transition: transform 0.25s ease;
-    z-index: 300;
-    pointer-events: none;
+    z-index: 300; pointer-events: none;
   }
   .toast.show { transform: translateX(-50%) translateY(0); }
 
-  /* Scrollbar styling */
   ::-webkit-scrollbar { width: 10px; height: 10px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb { background: var(--pink); border: 2px solid var(--bg); }
 
-  /* Mobile */
   @media (max-width: 640px) {
     h1 { font-size: 14px; }
     main { padding: 14px; }
     .columns { flex-direction: column; }
     .column, .add-column { width: 100%; min-width: 0; }
   }
+
+  [hidden] { display: none !important; }
 </style>
 </head>
 <body>
 
-<header>
-  <h1><span class="star">★</span> Pink Kanban <span class="star">★</span></h1>
-  <div class="board-tabs" id="boardTabs"></div>
-  <div class="header-actions">
-    <button class="btn ghost" id="newBoardBtn">+ Board</button>
-    <button class="btn ghost" id="exportBtn">Export</button>
-    <button class="btn ghost" id="importBtn">Import</button>
-    <input type="file" id="importFile" accept="application/json" style="display:none" />
+<!-- Auth screen -->
+<div id="authScreen" class="auth-screen">
+  <div class="auth-card">
+    <h1><span class="star">★</span> Pink Kanban <span class="star">★</span></h1>
+    <p>Sign in with your email — we'll send you a magic link.</p>
+    <div class="field">
+      <label for="emailInput">Email</label>
+      <input id="emailInput" type="email" placeholder="you@example.com" autocomplete="email" />
+    </div>
+    <button class="btn" id="signinBtn" style="width:100%">Send magic link</button>
+    <div class="auth-msg" id="authMsg"></div>
   </div>
-</header>
+</div>
 
-<main id="main">
-  <div class="board-title-row">
-    <h2 class="board-title" id="boardTitle">—</h2>
-    <span class="board-meta" id="boardMeta"></span>
-  </div>
-  <div class="columns" id="columns"></div>
-</main>
+<!-- App -->
+<div id="app" hidden>
+  <header>
+    <h1><span class="star">★</span> Pink Kanban <span class="star">★</span></h1>
+    <div class="board-tabs" id="boardTabs"></div>
+    <div class="header-actions">
+      <span class="user-chip" id="userChip"></span>
+      <button class="btn ghost" id="newBoardBtn">+ Board</button>
+      <button class="btn ghost" id="signoutBtn">Sign out</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="board-title-row">
+      <h2 class="board-title" id="boardTitle">—</h2>
+      <span class="board-meta" id="boardMeta"></span>
+      <span id="boardVis"></span>
+      <button class="btn ghost" id="toggleVisBtn" hidden>Make public</button>
+    </div>
+    <div id="readOnlyBanner" class="read-only-banner" hidden>
+      ★ Read-only — this is someone else's private board, or you're not signed in as the owner.
+    </div>
+    <div class="columns" id="columns"></div>
+  </main>
+</div>
 
 <!-- Card edit modal -->
 <div class="modal-bg" id="cardModal">
@@ -446,123 +530,285 @@
 
 <script>
 /* ============================================================
- * Pink Kanban — single-file static app
- * Storage: localStorage (key: "pink-kanban:v1")
+ * Pink Kanban v2 — Supabase backend, magic-link auth, realtime
  * ============================================================ */
 (function () {
   'use strict';
 
-  const STORAGE_KEY = 'pink-kanban:v1';
+  const SUPABASE_URL = 'https://sjtxuegjdukjdobsxnhs.supabase.co';
+  const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_YUZolKOL68u_n2SY1s2O8A_GJQjKwY0';
+  const LEGACY_KEY = 'pink-kanban:v1';
 
-  /** @typedef {{id:string,title:string,description:string,due:string,tags:string[]}} Card */
-  /** @typedef {{id:string,name:string,cards:Card[]}} Column */
-  /** @typedef {{id:string,name:string,columns:Column[]}} Board */
-
-  const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
-
-  const defaultState = () => ({
-    activeBoardId: null,
-    boards: [
-      {
-        id: uid(),
-        name: 'Work',
-        columns: [
-          { id: uid(), name: 'To Do', cards: [
-            { id: uid(), title: 'Plan Q3 roadmap', description: 'Outline themes and key bets.', due: '', tags: ['planning'] },
-            { id: uid(), title: 'Review PRD draft', description: '', due: '', tags: ['review'] },
-          ]},
-          { id: uid(), name: 'Doing', cards: [
-            { id: uid(), title: 'Sync with design', description: 'Align on retro theme direction.', due: '', tags: ['design'] },
-          ]},
-          { id: uid(), name: 'Blocked', cards: [] },
-          { id: uid(), name: 'Done', cards: [
-            { id: uid(), title: 'Set up Kanban app', description: 'You are here ✨', due: '', tags: ['meta'] },
-          ]},
-        ],
-      },
-      {
-        id: uid(),
-        name: 'Personal',
-        columns: [
-          { id: uid(), name: 'Someday', cards: [
-            { id: uid(), title: 'Plan weekend trip', description: '', due: '', tags: ['fun'] },
-          ]},
-          { id: uid(), name: 'This week', cards: [
-            { id: uid(), title: 'Grocery run', description: 'Veg, fruit, oat milk.', due: '', tags: [] },
-          ]},
-          { id: uid(), name: 'Done', cards: [] },
-        ],
-      },
-    ],
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
   });
 
-  /* -------- State + persistence -------- */
-  let state = load();
-  if (!state.activeBoardId && state.boards.length) {
-    state.activeBoardId = state.boards[0].id;
-  }
+  const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+  const $ = (id) => document.getElementById(id);
 
-  function load() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw);
-    } catch (e) { console.warn('load failed', e); }
-    return defaultState();
-  }
-  function save() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }
-  function activeBoard() {
-    return state.boards.find(b => b.id === state.activeBoardId) || state.boards[0];
-  }
+  // ---------- App state ----------
+  /** @type {{id:string,owner_id:string,name:string,data:{columns:any[]},is_public:boolean,updated_at:string}[]} */
+  let boards = [];
+  let activeBoardId = null;
+  let me = null;            // session user
+  let realtimeChannel = null;
+  let saveTimer = null;
+  let pendingSave = null;   // {boardId, payload}
 
-  /* -------- Toast -------- */
-  const toastEl = document.getElementById('toast');
+  // ---------- Toast ----------
+  const toastEl = $('toast');
   let toastTimer;
-  function toast(msg) {
+  function toast(msg, ms = 1400) {
     toastEl.textContent = msg;
     toastEl.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1400);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), ms);
   }
 
-  /* -------- Render -------- */
-  const tabsEl = document.getElementById('boardTabs');
-  const columnsEl = document.getElementById('columns');
-  const boardTitleEl = document.getElementById('boardTitle');
-  const boardMetaEl = document.getElementById('boardMeta');
+  // ---------- Auth ----------
+  async function init() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      onSignedIn(session.user);
+    } else {
+      showAuth();
+    }
+    sb.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) onSignedIn(session.user);
+      if (event === 'SIGNED_OUT') showAuth();
+    });
+  }
+
+  function showAuth() {
+    $('authScreen').hidden = false;
+    $('app').hidden = true;
+    me = null;
+    setTimeout(() => $('emailInput').focus(), 50);
+  }
+
+  async function onSignedIn(user) {
+    me = user;
+    $('authScreen').hidden = true;
+    $('app').hidden = false;
+    $('userChip').textContent = user.email;
+    await loadBoards();
+    maybeOfferLegacyImport();
+    render();
+  }
+
+  $('signinBtn').addEventListener('click', sendMagicLink);
+  $('emailInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMagicLink(); });
+  async function sendMagicLink() {
+    const email = $('emailInput').value.trim();
+    const msg = $('authMsg');
+    if (!email) { msg.textContent = 'Enter your email'; msg.className = 'auth-msg err'; return; }
+    $('signinBtn').disabled = true;
+    msg.textContent = 'Sending…'; msg.className = 'auth-msg';
+    const { error } = await sb.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.origin + window.location.pathname },
+    });
+    $('signinBtn').disabled = false;
+    if (error) {
+      msg.textContent = 'Error: ' + error.message;
+      msg.className = 'auth-msg err';
+    } else {
+      msg.textContent = '✓ Check your inbox for the link';
+      msg.className = 'auth-msg ok';
+    }
+  }
+
+  $('signoutBtn').addEventListener('click', async () => {
+    await sb.auth.signOut();
+    boards = []; activeBoardId = null;
+    if (realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
+  });
+
+  // ---------- Board CRUD ----------
+  async function loadBoards() {
+    // Returns own boards plus public boards (covered by RLS policies).
+    const { data, error } = await sb.from('boards')
+      .select('*')
+      .order('updated_at', { ascending: false });
+    if (error) { console.error(error); toast('load failed: ' + error.message, 3000); return; }
+    boards = data || [];
+    if (!activeBoardId && boards.length) activeBoardId = boards[0].id;
+    subscribeRealtime();
+  }
+
+  function activeBoard() {
+    return boards.find(b => b.id === activeBoardId) || null;
+  }
+
+  function canEdit(board) {
+    if (!board || !me) return false;
+    return board.owner_id === me.id || board.is_public;
+  }
+
+  async function createBoard(name) {
+    const newBoard = {
+      owner_id: me.id,
+      name,
+      data: { columns: [
+        { id: uid(), name: 'To Do', cards: [] },
+        { id: uid(), name: 'Doing', cards: [] },
+        { id: uid(), name: 'Done', cards: [] },
+      ]},
+      is_public: false,
+    };
+    const { data, error } = await sb.from('boards').insert(newBoard).select().single();
+    if (error) { toast('create failed: ' + error.message, 3000); return; }
+    boards.unshift(data);
+    activeBoardId = data.id;
+    subscribeRealtime();
+    render();
+    toast('board created');
+  }
+
+  async function deleteBoard(board) {
+    const { error } = await sb.from('boards').delete().eq('id', board.id);
+    if (error) { toast('delete failed: ' + error.message, 3000); return; }
+    boards = boards.filter(b => b.id !== board.id);
+    if (activeBoardId === board.id) activeBoardId = boards[0]?.id || null;
+    subscribeRealtime();
+    render();
+    toast('board deleted');
+  }
+
+  async function renameBoard(board, name) {
+    board.name = name;
+    const { error } = await sb.from('boards').update({ name }).eq('id', board.id);
+    if (error) toast('rename failed: ' + error.message, 3000);
+    render();
+  }
+
+  async function togglePublic(board) {
+    const next = !board.is_public;
+    if (next && !confirm('Make "' + board.name + '" public? Anyone signed in will be able to view AND edit it.')) return;
+    if (!next && !confirm('Make "' + board.name + '" private? Other people will lose access immediately.')) return;
+    const { error } = await sb.from('boards').update({ is_public: next }).eq('id', board.id);
+    if (error) { toast('failed: ' + error.message, 3000); return; }
+    board.is_public = next;
+    render();
+    toast(next ? 'now public' : 'now private');
+  }
+
+  // Throttled save: collects mutations to .data and pushes once per 400ms.
+  function saveBoardSoon(board) {
+    pendingSave = { boardId: board.id, payload: { data: board.data, name: board.name } };
+    if (saveTimer) return;
+    saveTimer = setTimeout(async () => {
+      const job = pendingSave; pendingSave = null; saveTimer = null;
+      if (!job) return;
+      const { error } = await sb.from('boards').update(job.payload).eq('id', job.boardId);
+      if (error) toast('save failed: ' + error.message, 3000);
+    }, 400);
+  }
+
+  // ---------- Realtime ----------
+  function subscribeRealtime() {
+    if (realtimeChannel) sb.removeChannel(realtimeChannel);
+    if (!boards.length) { realtimeChannel = null; return; }
+    realtimeChannel = sb.channel('boards-rt')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'boards' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const row = payload.new;
+            if (!boards.find(b => b.id === row.id)) {
+              boards.unshift(row);
+              render();
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            const row = payload.new;
+            const i = boards.findIndex(b => b.id === row.id);
+            if (i !== -1) {
+              // Don't clobber if we just typed something locally and the echo hasn't caught up.
+              if (pendingSave && pendingSave.boardId === row.id) return;
+              boards[i] = row;
+              render();
+            } else if (row.is_public) {
+              // A board became public — pull it in.
+              boards.push(row); render();
+            }
+          } else if (payload.eventType === 'DELETE') {
+            const id = payload.old.id;
+            boards = boards.filter(b => b.id !== id);
+            if (activeBoardId === id) activeBoardId = boards[0]?.id || null;
+            render();
+          }
+        })
+      .subscribe();
+  }
+
+  // ---------- Migration from v1 localStorage ----------
+  async function maybeOfferLegacyImport() {
+    let legacy;
+    try { legacy = JSON.parse(localStorage.getItem(LEGACY_KEY) || 'null'); } catch (_) {}
+    if (!legacy || !Array.isArray(legacy.boards) || !legacy.boards.length) return;
+    const myBoardCount = boards.filter(b => b.owner_id === me.id).length;
+    if (myBoardCount > 0) return; // user already has cloud boards; don't pester
+    if (!confirm('Found ' + legacy.boards.length + ' board(s) saved in this browser from the old version. Upload them to your account?')) {
+      localStorage.removeItem(LEGACY_KEY);
+      return;
+    }
+    const rows = legacy.boards.map(b => ({
+      owner_id: me.id,
+      name: b.name || 'Untitled',
+      data: { columns: b.columns || [] },
+      is_public: false,
+    }));
+    const { data, error } = await sb.from('boards').insert(rows).select();
+    if (error) { toast('import failed: ' + error.message, 3000); return; }
+    boards = (data || []).concat(boards);
+    if (!activeBoardId && boards.length) activeBoardId = boards[0].id;
+    localStorage.removeItem(LEGACY_KEY);
+    subscribeRealtime();
+    render();
+    toast('imported ' + rows.length + ' board(s)');
+  }
+
+  // ---------- Render ----------
+  const tabsEl = $('boardTabs');
+  const columnsEl = $('columns');
+  const boardTitleEl = $('boardTitle');
+  const boardMetaEl = $('boardMeta');
+  const boardVisEl = $('boardVis');
+  const toggleVisBtn = $('toggleVisBtn');
+  const readOnlyBanner = $('readOnlyBanner');
 
   function render() {
+    if (!me) return;
     renderTabs();
     renderBoard();
   }
 
   function renderTabs() {
     tabsEl.innerHTML = '';
-    state.boards.forEach(b => {
+    boards.forEach(b => {
       const t = document.createElement('button');
-      t.className = 'tab' + (b.id === state.activeBoardId ? ' active' : '');
-      t.textContent = b.name;
-      t.dataset.id = b.id;
+      t.className = 'tab' + (b.id === activeBoardId ? ' active' : '');
+      const label = document.createElement('span');
+      label.textContent = b.name;
+      t.appendChild(label);
+      if (b.is_public) {
+        const dot = document.createElement('span');
+        dot.className = 'pub-dot';
+        dot.title = 'Public';
+        t.appendChild(dot);
+      }
       t.addEventListener('click', () => {
-        state.activeBoardId = b.id;
-        save(); render();
+        activeBoardId = b.id; render();
       });
-      t.addEventListener('dblclick', () => openBoardModal(b));
-      if (state.boards.length > 1) {
+      t.addEventListener('dblclick', () => {
+        if (b.owner_id === me.id) openBoardModal(b);
+      });
+      if (b.owner_id === me.id) {
         const x = document.createElement('span');
-        x.className = 'x';
-        x.textContent = '✕';
-        x.title = 'Delete board';
+        x.className = 'x'; x.textContent = '✕'; x.title = 'Delete board';
         x.addEventListener('click', (e) => {
           e.stopPropagation();
-          if (confirm('Delete board "' + b.name + '"? This cannot be undone.')) {
-            state.boards = state.boards.filter(x => x.id !== b.id);
-            if (state.activeBoardId === b.id) {
-              state.activeBoardId = state.boards[0]?.id || null;
-            }
-            save(); render(); toast('board deleted');
-          }
+          if (confirm('Delete board "' + b.name + '"? This cannot be undone.')) deleteBoard(b);
         });
         t.appendChild(x);
       }
@@ -573,34 +819,58 @@
   function renderBoard() {
     const board = activeBoard();
     columnsEl.innerHTML = '';
+    boardVisEl.innerHTML = '';
+    toggleVisBtn.hidden = true;
+    readOnlyBanner.hidden = true;
+
     if (!board) {
-      boardTitleEl.textContent = 'No boards';
+      boardTitleEl.textContent = '> No boards';
       boardMetaEl.textContent = '';
-      columnsEl.innerHTML = '<div class="empty-state">no boards yet — hit “+ Board” to start</div>';
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.textContent = 'no boards yet — hit "+ Board" to start';
+      columnsEl.appendChild(empty);
       return;
     }
+
     boardTitleEl.textContent = '> ' + board.name;
-    const totalCards = board.columns.reduce((n, c) => n + c.cards.length, 0);
-    boardMetaEl.textContent = totalCards + ' card' + (totalCards === 1 ? '' : 's') + ' · ' + board.columns.length + ' columns';
+    const cols = (board.data && board.data.columns) || [];
+    const totalCards = cols.reduce((n, c) => n + (c.cards || []).length, 0);
+    boardMetaEl.textContent = totalCards + ' card' + (totalCards === 1 ? '' : 's') + ' · ' + cols.length + ' columns';
 
-    board.columns.forEach(col => columnsEl.appendChild(renderColumn(board, col)));
+    const badge = document.createElement('span');
+    badge.className = board.is_public ? 'public-badge' : 'private-badge';
+    badge.textContent = board.is_public ? '◉ public' : '◯ private';
+    boardVisEl.appendChild(badge);
 
-    const addCol = document.createElement('button');
-    addCol.className = 'add-column';
-    addCol.textContent = '+ ADD COLUMN';
-    addCol.addEventListener('click', () => {
-      const name = prompt('Column name:');
-      if (!name) return;
-      board.columns.push({ id: uid(), name: name.trim(), cards: [] });
-      save(); render();
-    });
-    columnsEl.appendChild(addCol);
+    if (board.owner_id === me.id) {
+      toggleVisBtn.hidden = false;
+      toggleVisBtn.textContent = board.is_public ? 'Make private' : 'Make public';
+    } else if (!board.is_public) {
+      readOnlyBanner.hidden = false;
+    }
+
+    const editable = canEdit(board);
+
+    cols.forEach(col => columnsEl.appendChild(renderColumn(board, col, editable)));
+
+    if (editable) {
+      const addCol = document.createElement('button');
+      addCol.className = 'add-column';
+      addCol.textContent = '+ ADD COLUMN';
+      addCol.addEventListener('click', () => {
+        const name = prompt('Column name:');
+        if (!name) return;
+        cols.push({ id: uid(), name: name.trim(), cards: [] });
+        saveBoardSoon(board); render();
+      });
+      columnsEl.appendChild(addCol);
+    }
   }
 
-  function renderColumn(board, col) {
+  function renderColumn(board, col, editable) {
     const wrap = document.createElement('div');
     wrap.className = 'column';
-    wrap.dataset.colId = col.id;
 
     const header = document.createElement('div');
     header.className = 'column-header';
@@ -608,42 +878,44 @@
     const name = document.createElement('div');
     name.className = 'column-name';
     name.textContent = col.name;
-    name.title = 'Click to rename';
-    name.addEventListener('click', () => {
-      name.contentEditable = 'true';
-      name.focus();
-      const range = document.createRange();
-      range.selectNodeContents(name);
-      const sel = window.getSelection();
-      sel.removeAllRanges(); sel.addRange(range);
-    });
-    name.addEventListener('blur', () => {
-      name.contentEditable = 'false';
-      const txt = name.textContent.trim() || col.name;
-      col.name = txt;
-      name.textContent = txt;
-      save();
-    });
-    name.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); name.blur(); }
-    });
+    if (editable) {
+      name.title = 'Click to rename';
+      name.addEventListener('click', () => {
+        name.contentEditable = 'true';
+        name.focus();
+        const range = document.createRange();
+        range.selectNodeContents(name);
+        const sel = window.getSelection();
+        sel.removeAllRanges(); sel.addRange(range);
+      });
+      name.addEventListener('blur', () => {
+        name.contentEditable = 'false';
+        const txt = name.textContent.trim() || col.name;
+        col.name = txt; name.textContent = txt;
+        saveBoardSoon(board);
+      });
+      name.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); name.blur(); }
+      });
+    }
 
     const count = document.createElement('div');
     count.className = 'column-count';
-    count.textContent = col.cards.length;
+    count.textContent = (col.cards || []).length;
 
     const actions = document.createElement('div');
     actions.className = 'column-actions';
-    const delBtn = document.createElement('button');
-    delBtn.className = 'icon-btn';
-    delBtn.textContent = '✕';
-    delBtn.title = 'Delete column';
-    delBtn.addEventListener('click', () => {
-      if (col.cards.length && !confirm('Delete column "' + col.name + '" and its ' + col.cards.length + ' card(s)?')) return;
-      board.columns = board.columns.filter(c => c.id !== col.id);
-      save(); render();
-    });
-    actions.appendChild(delBtn);
+    if (editable) {
+      const delBtn = document.createElement('button');
+      delBtn.className = 'icon-btn';
+      delBtn.textContent = '✕'; delBtn.title = 'Delete column';
+      delBtn.addEventListener('click', () => {
+        if ((col.cards || []).length && !confirm('Delete column "' + col.name + '" and its ' + col.cards.length + ' card(s)?')) return;
+        board.data.columns = board.data.columns.filter(c => c.id !== col.id);
+        saveBoardSoon(board); render();
+      });
+      actions.appendChild(delBtn);
+    }
 
     header.appendChild(name);
     header.appendChild(count);
@@ -652,44 +924,44 @@
 
     const cardsEl = document.createElement('div');
     cardsEl.className = 'cards';
-    cardsEl.dataset.colId = col.id;
 
-    cardsEl.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      cardsEl.classList.add('drag-over');
-    });
-    cardsEl.addEventListener('dragleave', () => cardsEl.classList.remove('drag-over'));
-    cardsEl.addEventListener('drop', (e) => {
-      e.preventDefault();
-      cardsEl.classList.remove('drag-over');
-      const data = e.dataTransfer.getData('text/plain');
-      if (!data) return;
-      const { cardId, fromColId } = JSON.parse(data);
-      moveCard(cardId, fromColId, col.id, getInsertIndex(cardsEl, e.clientY));
-    });
+    if (editable) {
+      cardsEl.addEventListener('dragover', (e) => { e.preventDefault(); cardsEl.classList.add('drag-over'); });
+      cardsEl.addEventListener('dragleave', () => cardsEl.classList.remove('drag-over'));
+      cardsEl.addEventListener('drop', (e) => {
+        e.preventDefault();
+        cardsEl.classList.remove('drag-over');
+        const data = e.dataTransfer.getData('text/plain');
+        if (!data) return;
+        const { cardId, fromColId } = JSON.parse(data);
+        moveCard(board, cardId, fromColId, col.id, getInsertIndex(cardsEl, e.clientY));
+      });
+    }
 
-    col.cards.forEach(card => cardsEl.appendChild(renderCard(board, col, card)));
+    (col.cards || []).forEach(card => cardsEl.appendChild(renderCard(board, col, card, editable)));
     wrap.appendChild(cardsEl);
 
-    const addCardBtn = document.createElement('button');
-    addCardBtn.className = 'add-card';
-    addCardBtn.textContent = '+ ADD CARD';
-    addCardBtn.addEventListener('click', () => {
-      const title = prompt('Card title:');
-      if (!title) return;
-      col.cards.push({ id: uid(), title: title.trim(), description: '', due: '', tags: [] });
-      save(); render();
-    });
-    wrap.appendChild(addCardBtn);
+    if (editable) {
+      const addCardBtn = document.createElement('button');
+      addCardBtn.className = 'add-card';
+      addCardBtn.textContent = '+ ADD CARD';
+      addCardBtn.addEventListener('click', () => {
+        const title = prompt('Card title:');
+        if (!title) return;
+        col.cards = col.cards || [];
+        col.cards.push({ id: uid(), title: title.trim(), description: '', due: '', tags: [] });
+        saveBoardSoon(board); render();
+      });
+      wrap.appendChild(addCardBtn);
+    }
 
     return wrap;
   }
 
-  function renderCard(board, col, card) {
+  function renderCard(board, col, card, editable) {
     const el = document.createElement('div');
     el.className = 'card';
-    el.draggable = true;
-    el.dataset.cardId = card.id;
+    el.draggable = editable;
 
     const t = document.createElement('div');
     t.className = 'card-title';
@@ -724,13 +996,17 @@
       el.appendChild(meta);
     }
 
-    el.addEventListener('click', () => openCardModal(board, col, card));
-    el.addEventListener('dragstart', (e) => {
-      el.classList.add('dragging');
-      e.dataTransfer.setData('text/plain', JSON.stringify({ cardId: card.id, fromColId: col.id }));
-      e.dataTransfer.effectAllowed = 'move';
-    });
-    el.addEventListener('dragend', () => el.classList.remove('dragging'));
+    if (editable) {
+      el.addEventListener('click', () => openCardModal(board, col, card));
+      el.addEventListener('dragstart', (e) => {
+        el.classList.add('dragging');
+        e.dataTransfer.setData('text/plain', JSON.stringify({ cardId: card.id, fromColId: col.id }));
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      el.addEventListener('dragend', () => el.classList.remove('dragging'));
+    } else {
+      el.style.cursor = 'default';
+    }
 
     return el;
   }
@@ -754,29 +1030,29 @@
     return cards.length;
   }
 
-  function moveCard(cardId, fromColId, toColId, insertIdx) {
-    const board = activeBoard();
-    const fromCol = board.columns.find(c => c.id === fromColId);
-    const toCol = board.columns.find(c => c.id === toColId);
+  function moveCard(board, cardId, fromColId, toColId, insertIdx) {
+    const cols = board.data.columns;
+    const fromCol = cols.find(c => c.id === fromColId);
+    const toCol = cols.find(c => c.id === toColId);
     if (!fromCol || !toCol) return;
-    const idx = fromCol.cards.findIndex(c => c.id === cardId);
+    const idx = (fromCol.cards || []).findIndex(c => c.id === cardId);
     if (idx === -1) return;
     const [card] = fromCol.cards.splice(idx, 1);
-    // Adjust index when moving inside same column above original position
     let target = insertIdx;
     if (fromCol === toCol && idx < insertIdx) target = insertIdx - 1;
+    toCol.cards = toCol.cards || [];
     target = Math.max(0, Math.min(target, toCol.cards.length));
     toCol.cards.splice(target, 0, card);
-    save(); render();
+    saveBoardSoon(board); render();
   }
 
-  /* -------- Card modal -------- */
-  const cardModal = document.getElementById('cardModal');
-  const cardTitleInp = document.getElementById('cardTitle');
-  const cardDescInp = document.getElementById('cardDesc');
-  const cardDueInp = document.getElementById('cardDue');
-  const cardTagsInp = document.getElementById('cardTags');
-  let editingRef = null; // {board, col, card}
+  // ---------- Card modal ----------
+  const cardModal = $('cardModal');
+  const cardTitleInp = $('cardTitle');
+  const cardDescInp = $('cardDesc');
+  const cardDueInp = $('cardDue');
+  const cardTagsInp = $('cardTags');
+  let editingRef = null;
 
   function openCardModal(board, col, card) {
     editingRef = { board, col, card };
@@ -787,35 +1063,30 @@
     cardModal.classList.add('show');
     setTimeout(() => cardTitleInp.focus(), 50);
   }
-  function closeCardModal() {
-    cardModal.classList.remove('show');
-    editingRef = null;
-  }
-  document.getElementById('cancelCardBtn').addEventListener('click', closeCardModal);
-  document.getElementById('saveCardBtn').addEventListener('click', () => {
+  function closeCardModal() { cardModal.classList.remove('show'); editingRef = null; }
+  $('cancelCardBtn').addEventListener('click', closeCardModal);
+  $('saveCardBtn').addEventListener('click', () => {
     if (!editingRef) return;
-    const { card } = editingRef;
+    const { board, card } = editingRef;
     card.title = cardTitleInp.value.trim() || 'Untitled';
     card.description = cardDescInp.value.trim();
     card.due = cardDueInp.value || '';
     card.tags = cardTagsInp.value.split(',').map(s => s.trim()).filter(Boolean);
-    save(); render(); closeCardModal(); toast('card saved');
+    saveBoardSoon(board); render(); closeCardModal(); toast('card saved');
   });
-  document.getElementById('deleteCardBtn').addEventListener('click', () => {
+  $('deleteCardBtn').addEventListener('click', () => {
     if (!editingRef) return;
-    const { col, card } = editingRef;
+    const { board, col, card } = editingRef;
     if (!confirm('Delete card "' + card.title + '"?')) return;
     col.cards = col.cards.filter(c => c.id !== card.id);
-    save(); render(); closeCardModal(); toast('card deleted');
+    saveBoardSoon(board); render(); closeCardModal(); toast('card deleted');
   });
-  cardModal.addEventListener('click', (e) => {
-    if (e.target === cardModal) closeCardModal();
-  });
+  cardModal.addEventListener('click', (e) => { if (e.target === cardModal) closeCardModal(); });
 
-  /* -------- Board modal -------- */
-  const boardModal = document.getElementById('boardModal');
-  const boardModalTitle = document.getElementById('boardModalTitle');
-  const boardNameInp = document.getElementById('boardName');
+  // ---------- Board modal ----------
+  const boardModal = $('boardModal');
+  const boardModalTitle = $('boardModalTitle');
+  const boardNameInp = $('boardName');
   let editingBoard = null;
 
   function openBoardModal(b) {
@@ -825,77 +1096,32 @@
     boardModal.classList.add('show');
     setTimeout(() => boardNameInp.focus(), 50);
   }
-  function closeBoardModal() {
-    boardModal.classList.remove('show');
-    editingBoard = null;
-  }
-  document.getElementById('newBoardBtn').addEventListener('click', () => openBoardModal(null));
-  document.getElementById('cancelBoardBtn').addEventListener('click', closeBoardModal);
-  document.getElementById('saveBoardBtn').addEventListener('click', () => {
+  function closeBoardModal() { boardModal.classList.remove('show'); editingBoard = null; }
+
+  $('newBoardBtn').addEventListener('click', () => openBoardModal(null));
+  $('cancelBoardBtn').addEventListener('click', closeBoardModal);
+  $('saveBoardBtn').addEventListener('click', async () => {
     const name = boardNameInp.value.trim();
     if (!name) return;
     if (editingBoard) {
-      editingBoard.name = name;
+      await renameBoard(editingBoard, name);
       toast('board renamed');
     } else {
-      const newBoard = {
-        id: uid(),
-        name,
-        columns: [
-          { id: uid(), name: 'To Do', cards: [] },
-          { id: uid(), name: 'Doing', cards: [] },
-          { id: uid(), name: 'Done', cards: [] },
-        ],
-      };
-      state.boards.push(newBoard);
-      state.activeBoardId = newBoard.id;
-      toast('board created');
+      await createBoard(name);
     }
-    save(); render(); closeBoardModal();
+    closeBoardModal();
   });
   boardNameInp.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') document.getElementById('saveBoardBtn').click();
+    if (e.key === 'Enter') $('saveBoardBtn').click();
   });
-  boardModal.addEventListener('click', (e) => {
-    if (e.target === boardModal) closeBoardModal();
+  boardModal.addEventListener('click', (e) => { if (e.target === boardModal) closeBoardModal(); });
+
+  toggleVisBtn.addEventListener('click', () => {
+    const b = activeBoard();
+    if (b) togglePublic(b);
   });
 
-  /* -------- Export / Import -------- */
-  document.getElementById('exportBtn').addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const stamp = new Date().toISOString().slice(0,10);
-    a.href = url;
-    a.download = 'pink-kanban-' + stamp + '.json';
-    document.body.appendChild(a); a.click();
-    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
-    toast('exported');
-  });
-  document.getElementById('importBtn').addEventListener('click', () => {
-    document.getElementById('importFile').click();
-  });
-  document.getElementById('importFile').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const parsed = JSON.parse(ev.target.result);
-        if (!parsed || !Array.isArray(parsed.boards)) throw new Error('Invalid file');
-        if (!confirm('Replace your current boards with the imported file?')) return;
-        state = parsed;
-        if (!state.activeBoardId && state.boards.length) state.activeBoardId = state.boards[0].id;
-        save(); render(); toast('imported');
-      } catch (err) {
-        alert('Could not import file: ' + err.message);
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
-  });
-
-  /* -------- Keyboard shortcut: Esc closes modals -------- */
+  // ---------- Keyboard ----------
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       if (cardModal.classList.contains('show')) closeCardModal();
@@ -903,8 +1129,8 @@
     }
   });
 
-  /* -------- Go -------- */
-  render();
+  // ---------- Go ----------
+  init();
 })();
 </script>
 </body>
