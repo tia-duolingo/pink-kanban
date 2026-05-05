@@ -249,6 +249,24 @@
     line-height: 1.35;
     position: relative;
   }
+  /* Priority left-edge stripe */
+  .card.prio-low::before,
+  .card.prio-medium::before,
+  .card.prio-high::before {
+    content: '';
+    position: absolute; left: -2px; top: -2px; bottom: -2px; width: 6px;
+    border-radius: 0;
+  }
+  .card.prio-low::before    { background: var(--cyan);   box-shadow: 0 0 8px var(--cyan); }
+  .card.prio-medium::before { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); }
+  .card.prio-high::before   { background: var(--hot);    box-shadow: 0 0 10px var(--hot); }
+  /* Color presets */
+  .card.color-pink   { background: rgba(255,62,170,0.18); border-color: var(--pink); }
+  .card.color-cyan   { background: rgba(111,233,255,0.15); border-color: var(--cyan); }
+  .card.color-yellow { background: rgba(255,224,102,0.15); border-color: var(--yellow); }
+  .card.color-green  { background: rgba(125,255,172,0.15); border-color: var(--green); }
+  .card.color-red    { background: rgba(255,0,128,0.18); border-color: var(--hot); }
+  .card.color-purple { background: rgba(155,89,255,0.18); border-color: #b388ff; }
   .card:active { cursor: grabbing; }
   .card.dragging { opacity: 0.4; }
   .card-title {
@@ -272,6 +290,19 @@
   .due.overdue { color: #ff7777; border-color: #ff7777; }
   .due.soon { color: var(--yellow); border-color: var(--yellow); }
 
+  .priority {
+    padding: 1px 6px;
+    border: 1px solid #000;
+    font-family: 'VT323', monospace;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #1a0723;
+  }
+  .priority.low    { background: var(--cyan); }
+  .priority.medium { background: var(--yellow); }
+  .priority.high   { background: var(--hot); color: #fff; }
+
   .tag {
     background: var(--pink);
     color: #1a0723;
@@ -281,6 +312,34 @@
     font-size: 13px;
     text-transform: uppercase;
   }
+
+  /* Color swatches in card modal */
+  .swatches {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .swatch {
+    width: 32px; height: 32px;
+    border: 2px solid #000;
+    cursor: pointer;
+    box-shadow: 2px 2px 0 #000;
+    position: relative;
+  }
+  .swatch[data-color="default"] { background: var(--panel-2); border-color: var(--pink-2); }
+  .swatch[data-color="pink"]   { background: var(--pink); }
+  .swatch[data-color="cyan"]   { background: var(--cyan); }
+  .swatch[data-color="yellow"] { background: var(--yellow); }
+  .swatch[data-color="green"]  { background: var(--green); }
+  .swatch[data-color="red"]    { background: var(--hot); }
+  .swatch[data-color="purple"] { background: #b388ff; }
+  .swatch.selected::after {
+    content: '✓';
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #1a0723; font-weight: bold; font-size: 18px;
+    text-shadow: 0 0 4px #fff;
+  }
+  .swatch[data-color="default"].selected::after,
+  .swatch[data-color="red"].selected::after { color: #fff; text-shadow: 0 0 4px #000; }
 
   .add-card {
     margin: 0 10px 10px;
@@ -498,6 +557,27 @@
     <div class="field">
       <label for="cardDue">Due date</label>
       <input id="cardDue" type="date" />
+    </div>
+    <div class="field">
+      <label for="cardPriority">Priority</label>
+      <select id="cardPriority" style="width:100%;background:var(--bg);border:2px solid var(--pink);color:var(--ink);padding:8px;font-family:'Space Mono',monospace;font-size:14px;outline:none;">
+        <option value="">None</option>
+        <option value="low">Low</option>
+        <option value="medium">Medium</option>
+        <option value="high">High</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Card color</label>
+      <div class="swatches" id="cardSwatches">
+        <div class="swatch" data-color="default" title="Default"></div>
+        <div class="swatch" data-color="pink"    title="Pink"></div>
+        <div class="swatch" data-color="cyan"    title="Cyan"></div>
+        <div class="swatch" data-color="yellow"  title="Yellow"></div>
+        <div class="swatch" data-color="green"   title="Green"></div>
+        <div class="swatch" data-color="red"     title="Red"></div>
+        <div class="swatch" data-color="purple"  title="Purple"></div>
+      </div>
     </div>
     <div class="field">
       <label for="cardTags">Tags (comma separated)</label>
@@ -880,7 +960,7 @@
     name.textContent = col.name;
     if (editable) {
       name.title = 'Click to rename';
-      name.addEventListener('click', () => {
+       name.addEventListener('click', () => {
         name.contentEditable = 'true';
         name.focus();
         const range = document.createRange();
@@ -961,6 +1041,8 @@
   function renderCard(board, col, card, editable) {
     const el = document.createElement('div');
     el.className = 'card';
+    if (card.priority) el.classList.add('prio-' + card.priority);
+    if (card.color && card.color !== 'default') el.classList.add('color-' + card.color);
     el.draggable = editable;
 
     const t = document.createElement('div');
@@ -977,9 +1059,18 @@
       el.appendChild(d);
     }
 
-    if (card.due || (card.tags && card.tags.length)) {
+    const hasMeta = card.due || card.priority || (card.tags && card.tags.length);
+    if (hasMeta) {
       const meta = document.createElement('div');
       meta.className = 'card-meta';
+      if (card.priority) {
+        const p = document.createElement('span');
+        p.className = 'priority ' + card.priority;
+        p.textContent = card.priority === 'low' ? '↓ low'
+                      : card.priority === 'medium' ? '→ med'
+                      : '↑ high';
+        meta.appendChild(p);
+      }
       if (card.due) {
         const due = document.createElement('span');
         due.className = 'due ' + dueClass(card.due);
@@ -1052,7 +1143,17 @@
   const cardDescInp = $('cardDesc');
   const cardDueInp = $('cardDue');
   const cardTagsInp = $('cardTags');
+  const cardPriorityInp = $('cardPriority');
+  const cardSwatches = $('cardSwatches');
   let editingRef = null;
+  let pickedColor = 'default';
+
+  cardSwatches.addEventListener('click', (e) => {
+    const sw = e.target.closest('.swatch');
+    if (!sw) return;
+    pickedColor = sw.dataset.color;
+    [...cardSwatches.children].forEach(c => c.classList.toggle('selected', c === sw));
+  });
 
   function openCardModal(board, col, card) {
     editingRef = { board, col, card };
@@ -1060,6 +1161,9 @@
     cardDescInp.value = card.description || '';
     cardDueInp.value = card.due || '';
     cardTagsInp.value = (card.tags || []).join(', ');
+    cardPriorityInp.value = card.priority || '';
+    pickedColor = card.color || 'default';
+    [...cardSwatches.children].forEach(c => c.classList.toggle('selected', c.dataset.color === pickedColor));
     cardModal.classList.add('show');
     setTimeout(() => cardTitleInp.focus(), 50);
   }
@@ -1072,6 +1176,8 @@
     card.description = cardDescInp.value.trim();
     card.due = cardDueInp.value || '';
     card.tags = cardTagsInp.value.split(',').map(s => s.trim()).filter(Boolean);
+    card.priority = cardPriorityInp.value || '';
+    card.color = pickedColor === 'default' ? '' : pickedColor;
     saveBoardSoon(board); render(); closeCardModal(); toast('card saved');
   });
   $('deleteCardBtn').addEventListener('click', () => {
