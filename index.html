@@ -356,17 +356,19 @@
   .add-card:hover { background: rgba(255,62,170,0.1); color: #fff; }
 
   .add-column {
-    width: 290px; min-width: 290px;
-    height: 60px;
-    border: 3px dashed var(--pink);
+    align-self: flex-start;
+    width: 44px; min-width: 44px;
+    height: 44px;
+    border: 2px dashed var(--pink);
     background: transparent;
     color: var(--pink-soft);
     cursor: pointer;
-    font-family: 'Press Start 2P', monospace;
-    font-size: 11px;
-    letter-spacing: 1px;
+    font-family: 'VT323', monospace;
+    font-size: 28px;
+    line-height: 1;
+    display: inline-flex; align-items: center; justify-content: center;
   }
-  .add-column:hover { background: rgba(255,62,170,0.1); color: #fff; }
+  .add-column:hover { background: rgba(255,62,170,0.15); color: #fff; border-color: var(--pink-soft); }
 
   /* ---------- Modal ---------- */
   .modal-bg {
@@ -937,7 +939,8 @@
     if (editable) {
       const addCol = document.createElement('button');
       addCol.className = 'add-column';
-      addCol.textContent = '+ ADD COLUMN';
+      addCol.textContent = '+';
+      addCol.title = 'Add column';
       addCol.addEventListener('click', () => {
         const name = prompt('Column name:');
         if (!name) return;
