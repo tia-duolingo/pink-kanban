@@ -195,6 +195,21 @@
     display: flex; align-items: center; gap: 8px;
     border-bottom: 2px solid #000;
   }
+  .col-handle {
+    cursor: grab;
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    line-height: 1;
+    color: #1a0723;
+    padding: 0 2px;
+    user-select: none;
+    opacity: 0.7;
+  }
+  .col-handle:hover { opacity: 1; }
+  .col-handle:active { cursor: grabbing; }
+  .column.col-dragging { opacity: 0.4; }
+  .column.col-drop-before { box-shadow: -6px 0 0 var(--cyan), 5px 5px 0 #000, 0 0 20px rgba(255,62,170,0.25); }
+  .column.col-drop-after  { box-shadow: 6px 0 0 var(--cyan), 5px 5px 0 #000, 0 0 20px rgba(255,62,170,0.25); }
   .column-name {
     font-family: 'Press Start 2P', monospace;
     font-size: 11px;
@@ -954,9 +969,68 @@
   function renderColumn(board, col, editable) {
     const wrap = document.createElement('div');
     wrap.className = 'column';
+    wrap.dataset.colId = col.id;
 
     const header = document.createElement('div');
     header.className = 'column-header';
+
+    if (editable) {
+      const handle = document.createElement('div');
+      handle.className = 'col-handle';
+      handle.textContent = '⋮⋮';
+      handle.title = 'Drag to reorder column';
+      handle.draggable = true;
+      handle.addEventListener('dragstart', (e) => {
+        wrap.classList.add('col-dragging');
+        e.dataTransfer.setData('application/x-bones-column', col.id);
+        e.dataTransfer.setData('text/plain', col.id);
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      handle.addEventListener('dragend', () => {
+        wrap.classList.remove('col-dragging');
+        document.querySelectorAll('.column').forEach(c => {
+          c.classList.remove('col-drop-before');
+          c.classList.remove('col-drop-after');
+        });
+      });
+      header.appendChild(handle);
+    }
+
+    // Column-level drop target for column reordering
+    wrap.addEventListener('dragover', (e) => {
+      if (!e.dataTransfer.types.includes('application/x-bones-column')) return;
+      e.preventDefault();
+      const r = wrap.getBoundingClientRect();
+      const before = e.clientX < r.left + r.width / 2;
+      wrap.classList.toggle('col-drop-before', before);
+      wrap.classList.toggle('col-drop-after', !before);
+    });
+    wrap.addEventListener('dragleave', (e) => {
+      // only clear if pointer actually left the column
+      const r = wrap.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) {
+        wrap.classList.remove('col-drop-before');
+        wrap.classList.remove('col-drop-after');
+      }
+    });
+    wrap.addEventListener('drop', (e) => {
+      if (!e.dataTransfer.types.includes('application/x-bones-column')) return;
+      e.preventDefault();
+      const fromId = e.dataTransfer.getData('application/x-bones-column');
+      const before = wrap.classList.contains('col-drop-before');
+      wrap.classList.remove('col-drop-before');
+      wrap.classList.remove('col-drop-after');
+      if (!fromId || fromId === col.id) return;
+      const cols = board.data.columns;
+      const fromIdx = cols.findIndex(c => c.id === fromId);
+      let toIdx = cols.findIndex(c => c.id === col.id);
+      if (fromIdx === -1 || toIdx === -1) return;
+      const [moved] = cols.splice(fromIdx, 1);
+      if (fromIdx < toIdx) toIdx--;
+      if (!before) toIdx++;
+      cols.splice(toIdx, 0, moved);
+      saveBoardSoon(board); render();
+    });
 
     const name = document.createElement('div');
     name.className = 'column-name';
@@ -1009,15 +1083,22 @@
     cardsEl.className = 'cards';
 
     if (editable) {
-      cardsEl.addEventListener('dragover', (e) => { e.preventDefault(); cardsEl.classList.add('drag-over'); });
+      cardsEl.addEventListener('dragover', (e) => {
+        if (e.dataTransfer.types.includes('application/x-bones-column')) return;
+        e.preventDefault();
+        cardsEl.classList.add('drag-over');
+      });
       cardsEl.addEventListener('dragleave', () => cardsEl.classList.remove('drag-over'));
       cardsEl.addEventListener('drop', (e) => {
+        if (e.dataTransfer.types.includes('application/x-bones-column')) return;
         e.preventDefault();
         cardsEl.classList.remove('drag-over');
         const data = e.dataTransfer.getData('text/plain');
         if (!data) return;
-        const { cardId, fromColId } = JSON.parse(data);
-        moveCard(board, cardId, fromColId, col.id, getInsertIndex(cardsEl, e.clientY));
+        let parsed;
+        try { parsed = JSON.parse(data); } catch (_) { return; }
+        if (!parsed || !parsed.cardId) return;
+        moveCard(board, parsed.cardId, parsed.fromColId, col.id, getInsertIndex(cardsEl, e.clientY));
       });
     }
 
