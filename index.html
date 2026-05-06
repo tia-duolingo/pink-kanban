@@ -932,6 +932,14 @@
 
     boardTitleEl.textContent = '> ' + board.name;
     const cols = (board.data && board.data.columns) || [];
+    // Auto-sort cards by priority: high → medium → low → none (stable)
+    cols.forEach(col => {
+      if (!col.cards) return;
+      const rank = (p) => p === 'high' ? 0 : p === 'medium' ? 1 : p === 'low' ? 2 : 3;
+      const indexed = col.cards.map((c, i) => ({c, i}));
+      indexed.sort((a, b) => (rank(a.c.priority) - rank(b.c.priority)) || (a.i - b.i));
+      col.cards = indexed.map(x => x.c);
+    });
     const totalCards = cols.reduce((n, c) => n + (c.cards || []).length, 0);
     boardMetaEl.textContent = totalCards + ' card' + (totalCards === 1 ? '' : 's') + ' · ' + cols.length + ' columns';
 
