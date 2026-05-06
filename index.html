@@ -274,25 +274,32 @@
 
   /* Cobweb (stale cards) */
   .card .cobweb {
-    position: absolute; top: -4px; right: -4px;
-    font-size: 22px;
+    position: absolute; inset: 0;
     pointer-events: none;
-    animation: cobweb-drift 4s ease-in-out infinite;
-    text-shadow: 0 0 6px rgba(255,255,255,0.4);
     z-index: 1;
+    opacity: 0.55;
+    animation: cobweb-drift 8s ease-in-out infinite;
+    overflow: visible;
+  }
+  .card .cobweb svg {
+    width: 100%; height: 100%;
+    display: block;
+    overflow: visible;
+    filter: drop-shadow(0 0 2px rgba(255,255,255,0.35));
   }
   @keyframes cobweb-drift {
-    0%, 100% { opacity: 0.85; transform: rotate(0deg); }
-    50%      { opacity: 1; transform: rotate(-4deg); }
+    0%, 100% { opacity: 0.55; }
+    50%      { opacity: 0.7; }
   }
   .card.dusting { overflow: visible; }
   .card.dusting .cobweb {
     animation: cobweb-puff 0.8s ease-in forwards;
+    transform-origin: center;
   }
   @keyframes cobweb-puff {
-    0%   { opacity: 1; transform: scale(1) rotate(0deg); }
-    50%  { opacity: 0.6; transform: scale(0.7) rotate(15deg); }
-    100% { opacity: 0; transform: scale(0.2) rotate(45deg); }
+    0%   { opacity: 0.7; transform: scale(1) rotate(0deg); }
+    50%  { opacity: 0.4; transform: scale(0.85) rotate(8deg); filter: blur(1px); }
+    100% { opacity: 0; transform: scale(0.6) rotate(20deg); filter: blur(3px); }
   }
   .card .broom {
     position: absolute;
@@ -1216,7 +1223,66 @@
     if (showCobweb) {
       const web = document.createElement('div');
       web.className = 'cobweb';
-      web.textContent = '🕸️';
+      web.innerHTML = '<svg viewBox="0 0 200 120" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">' +
+        '<g fill="none" stroke="#fff" stroke-width="1" stroke-linecap="round" vector-effect="non-scaling-stroke">' +
+          // Top-left corner web — fan of arcs + spokes
+          '<g>' +
+            '<path d="M0,10 Q10,10 10,0"/>' +
+            '<path d="M0,22 Q22,22 22,0"/>' +
+            '<path d="M0,34 Q34,34 34,0"/>' +
+            '<path d="M0,46 Q46,46 46,0"/>' +
+            '<path d="M0,58 Q58,58 58,0"/>' +
+            '<line x1="0" y1="0" x2="60" y2="0"/>' +
+            '<line x1="0" y1="0" x2="55" y2="14"/>' +
+            '<line x1="0" y1="0" x2="48" y2="28"/>' +
+            '<line x1="0" y1="0" x2="36" y2="42"/>' +
+            '<line x1="0" y1="0" x2="20" y2="52"/>' +
+            '<line x1="0" y1="0" x2="0" y2="60"/>' +
+          '</g>' +
+          // Top-right corner web (mirrored)
+          '<g transform="translate(200,0) scale(-1,1)">' +
+            '<path d="M0,10 Q10,10 10,0"/>' +
+            '<path d="M0,22 Q22,22 22,0"/>' +
+            '<path d="M0,34 Q34,34 34,0"/>' +
+            '<path d="M0,46 Q46,46 46,0"/>' +
+            '<path d="M0,58 Q58,58 58,0"/>' +
+            '<line x1="0" y1="0" x2="60" y2="0"/>' +
+            '<line x1="0" y1="0" x2="55" y2="14"/>' +
+            '<line x1="0" y1="0" x2="48" y2="28"/>' +
+            '<line x1="0" y1="0" x2="36" y2="42"/>' +
+            '<line x1="0" y1="0" x2="20" y2="52"/>' +
+            '<line x1="0" y1="0" x2="0" y2="60"/>' +
+          '</g>' +
+          // Bottom-left corner (smaller)
+          '<g transform="translate(0,120) scale(1,-1)">' +
+            '<path d="M0,8 Q8,8 8,0"/>' +
+            '<path d="M0,18 Q18,18 18,0"/>' +
+            '<path d="M0,28 Q28,28 28,0"/>' +
+            '<path d="M0,38 Q38,38 38,0"/>' +
+            '<line x1="0" y1="0" x2="40" y2="0"/>' +
+            '<line x1="0" y1="0" x2="32" y2="20"/>' +
+            '<line x1="0" y1="0" x2="20" y2="34"/>' +
+            '<line x1="0" y1="0" x2="0" y2="40"/>' +
+          '</g>' +
+          // Bottom-right corner (smaller)
+          '<g transform="translate(200,120) scale(-1,-1)">' +
+            '<path d="M0,8 Q8,8 8,0"/>' +
+            '<path d="M0,18 Q18,18 18,0"/>' +
+            '<path d="M0,28 Q28,28 28,0"/>' +
+            '<path d="M0,38 Q38,38 38,0"/>' +
+            '<line x1="0" y1="0" x2="40" y2="0"/>' +
+            '<line x1="0" y1="0" x2="32" y2="20"/>' +
+            '<line x1="0" y1="0" x2="20" y2="34"/>' +
+            '<line x1="0" y1="0" x2="0" y2="40"/>' +
+          '</g>' +
+          // Hanging drips from top edge
+          '<line x1="80"  y1="0" x2="80"  y2="18"/>' +
+          '<line x1="105" y1="0" x2="105" y2="10"/>' +
+          '<line x1="130" y1="0" x2="130" y2="22"/>' +
+          '<line x1="92"  y1="0" x2="92"  y2="6"/>' +
+          '<line x1="118" y1="0" x2="118" y2="12"/>' +
+        '</g>' +
+        '</svg>';
       el.appendChild(web);
     }
 
