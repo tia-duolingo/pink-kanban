@@ -699,9 +699,15 @@
   }
   .toast.show { transform: translateX(-50%) translateY(0); }
 
+  /* Scrollbars: hidden by default, fade in only while actively scrolling */
   ::-webkit-scrollbar { width: 10px; height: 10px; }
-  ::-webkit-scrollbar-track { background: var(--bg); }
-  ::-webkit-scrollbar-thumb { background: var(--pink); border: 2px solid var(--bg); }
+  ::-webkit-scrollbar-track { background: transparent; transition: background 0.25s ease; }
+  ::-webkit-scrollbar-thumb { background: transparent; border: 2px solid transparent; transition: background 0.25s ease, border-color 0.25s ease; }
+  body.scrolling ::-webkit-scrollbar-track { background: var(--bg); }
+  body.scrolling ::-webkit-scrollbar-thumb { background: var(--pink); border-color: var(--bg); }
+  /* Firefox */
+  * { scrollbar-color: transparent transparent; scrollbar-width: thin; }
+  body.scrolling * { scrollbar-color: var(--pink) var(--bg); }
 
   @media (max-width: 640px) {
     h1 { font-size: 14px; }
@@ -1860,6 +1866,21 @@
       if (menuPanel.classList.contains('open')) closeMenu();
     }
   });
+
+  // ---------- Auto-hide scrollbars while idle ----------
+  let scrollIdleTimer = null;
+  function markScrolling() {
+    document.body.classList.add('scrolling');
+    if (scrollIdleTimer) clearTimeout(scrollIdleTimer);
+    scrollIdleTimer = setTimeout(() => {
+      document.body.classList.remove('scrolling');
+      scrollIdleTimer = null;
+    }, 700);
+  }
+  // Capture phase catches scroll events on inner scrollables (which don't bubble)
+  window.addEventListener('scroll', markScrolling, { capture: true, passive: true });
+  // Show scrollbars briefly on wheel too — useful when content is scrollable but not yet scrolling
+  window.addEventListener('wheel', markScrolling, { capture: true, passive: true });
 
   // ---------- Go ----------
   init();
