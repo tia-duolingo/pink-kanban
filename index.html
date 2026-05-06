@@ -631,6 +631,21 @@
   </div>
 </div>
 
+<!-- Generic input modal (replacement for native prompt) -->
+<div class="modal-bg" id="inputModal">
+  <div class="modal">
+    <h2 id="inputModalTitle">Add</h2>
+    <div class="field">
+      <label for="inputModalField" id="inputModalLabel">Name</label>
+      <input id="inputModalField" type="text" maxlength="200" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="inputModalCancel">Cancel</button>
+      <button class="btn" id="inputModalOk">Add</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast">saved</div>
 
 <script>
@@ -972,10 +987,10 @@
       addCol.className = 'add-column';
       addCol.textContent = '+';
       addCol.title = 'Add column';
-      addCol.addEventListener('click', () => {
-        const name = prompt('Column name:');
+      addCol.addEventListener('click', async () => {
+        const name = await customPrompt('New Column', 'Column name');
         if (!name) return;
-        cols.push({ id: uid(), name: name.trim(), cards: [] });
+        cols.push({ id: uid(), name, cards: [] });
         saveBoardSoon(board); render();
       });
       columnsEl.appendChild(addCol);
@@ -1125,11 +1140,11 @@
       const addCardBtn = document.createElement('button');
       addCardBtn.className = 'add-card';
       addCardBtn.textContent = '+ ADD CARD';
-      addCardBtn.addEventListener('click', () => {
-        const title = prompt('Card title:');
+      addCardBtn.addEventListener('click', async () => {
+        const title = await customPrompt('New Card', 'Card title');
         if (!title) return;
         col.cards = col.cards || [];
-        col.cards.push({ id: uid(), title: title.trim(), description: '', due: '', tags: [] });
+        col.cards.push({ id: uid(), title, description: '', due: '', tags: [] });
         saveBoardSoon(board); render();
       });
       wrap.appendChild(addCardBtn);
@@ -1350,11 +1365,37 @@
     if (b) togglePublic(b);
   });
 
+  // ---------- Custom input modal (themed replacement for prompt) ----------
+  const inputModal = $('inputModal');
+  const inputModalTitle = $('inputModalTitle');
+  const inputModalLabel = $('inputModalLabel');
+  const inputModalField = $('inputModalField');
+  let inputModalResolve = null;
+  function customPrompt(title, label) {
+    inputModalTitle.textContent = title;
+    inputModalLabel.textContent = label;
+    inputModalField.value = '';
+    inputModal.classList.add('show');
+    setTimeout(() => inputModalField.focus(), 50);
+    return new Promise((res) => { inputModalResolve = res; });
+  }
+  function closeInputModal(val) {
+    inputModal.classList.remove('show');
+    if (inputModalResolve) { const r = inputModalResolve; inputModalResolve = null; r(val); }
+  }
+  $('inputModalCancel').addEventListener('click', () => closeInputModal(null));
+  $('inputModalOk').addEventListener('click', () => closeInputModal(inputModalField.value.trim() || null));
+  inputModalField.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); $('inputModalOk').click(); }
+  });
+  inputModal.addEventListener('click', (e) => { if (e.target === inputModal) closeInputModal(null); });
+
   // ---------- Keyboard ----------
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       if (cardModal.classList.contains('show')) closeCardModal();
       if (boardModal.classList.contains('show')) closeBoardModal();
+      if (inputModal.classList.contains('show')) closeInputModal(null);
     }
   });
 
