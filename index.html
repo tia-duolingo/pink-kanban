@@ -504,6 +504,25 @@
   }
 
   [hidden] { display: none !important; }
+
+  /* Confetti */
+  .confetti-container {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 999;
+  }
+  .confetti-piece {
+    position: absolute;
+    top: -10vh;
+    width: 10px; height: 14px;
+    animation: confetti-fall linear forwards;
+    will-change: transform;
+  }
+  @keyframes confetti-fall {
+    0%   { transform: translate3d(0, 0, 0) rotate(0deg); }
+    100% { transform: translate3d(var(--tx, 0), 110vh, 0) rotate(720deg); }
+  }
 </style>
 </head>
 <body>
@@ -1216,6 +1235,29 @@
     target = Math.max(0, Math.min(target, toCol.cards.length));
     toCol.cards.splice(target, 0, card);
     saveBoardSoon(board); render();
+    // Confetti when a card moves into a "Done" column from elsewhere
+    if (fromCol !== toCol && (toCol.name || '').trim().toLowerCase() === 'done') {
+      popConfetti();
+    }
+  }
+
+  function popConfetti() {
+    const colors = ['#ff3eaa', '#ffe066', '#6fe9ff', '#7dffac', '#ff7ac6', '#b388ff', '#ff0080'];
+    const container = document.createElement('div');
+    container.className = 'confetti-container';
+    for (let i = 0; i < 90; i++) {
+      const p = document.createElement('div');
+      p.className = 'confetti-piece';
+      p.style.left = (Math.random() * 100) + 'vw';
+      p.style.background = colors[Math.floor(Math.random() * colors.length)];
+      p.style.animationDuration = (1.2 + Math.random() * 1.6) + 's';
+      p.style.animationDelay = (Math.random() * 0.5) + 's';
+      p.style.setProperty('--tx', ((Math.random() - 0.5) * 240) + 'px');
+      p.style.transform = 'rotate(' + (Math.random() * 360) + 'deg)';
+      container.appendChild(p);
+    }
+    document.body.appendChild(container);
+    setTimeout(() => container.remove(), 4000);
   }
 
   // ---------- Card modal ----------
