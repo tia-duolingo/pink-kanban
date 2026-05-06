@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  /* ---------- Pink Retro Theme ---------- */
+  /* ---------- Pink Retro Theme (default) ---------- */
   :root {
     --bg: #1a0723;
     --bg2: #2a0e3a;
@@ -23,6 +23,92 @@
     --cyan: #6fe9ff;
     --yellow: #ffe066;
     --green: #7dffac;
+    --shadow-ink: #1a0723;
+    --body-grad: linear-gradient(rgba(26,7,35,0.90), rgba(26,7,35,0.90)), repeating-linear-gradient(0deg, transparent 0 2px, rgba(255,62,170,0.05) 2px 3px), radial-gradient(ellipse at top, #4a1968 0%, #1a0723 60%);
+    --scanlines: repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0 1px, transparent 1px 3px);
+    --panel-texture: none;
+    --header-grad: linear-gradient(90deg, var(--pink), var(--hot));
+    --header-ink: #1a0723;
+  }
+
+  /* ---------- Dungeon Theme ---------- */
+  [data-theme="dungeon"] {
+    --bg: #0d1018;
+    --bg2: #161b28;
+    --panel: #232233;
+    --panel-2: #2f2c44;
+    --ink: #f0e0c0;
+    --pink: #ff8c42;        /* torch orange */
+    --pink-2: #ffb347;      /* lighter flame */
+    --pink-soft: #ffc266;   /* soft amber */
+    --hot: #ff6b35;         /* deep ember */
+    --cyan: #6da7d6;        /* cool stone blue */
+    --yellow: #ffd966;      /* candle glow */
+    --green: #8bc66e;       /* mossy green */
+    --shadow-ink: #06070d;
+    --body-grad:
+      linear-gradient(rgba(13,16,24,0.78), rgba(13,16,24,0.92)),
+      radial-gradient(ellipse at top, #3a2e2a 0%, #0d1018 70%);
+    --scanlines:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.25) 0 1px, transparent 1px 3px),
+      repeating-linear-gradient(0deg, transparent 0 28px, rgba(0,0,0,0.30) 28px 29px),
+      repeating-linear-gradient(90deg, transparent 0 44px, rgba(0,0,0,0.30) 44px 45px);
+    --panel-texture:
+      linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 40%),
+      repeating-linear-gradient(0deg, transparent 0 24px, rgba(0,0,0,0.22) 24px 25px),
+      repeating-linear-gradient(90deg, transparent 0 38px, rgba(0,0,0,0.22) 38px 39px);
+    --header-grad: linear-gradient(180deg, #4a3a2a 0%, #2a2438 100%);
+    --header-ink: var(--ink);
+  }
+  [data-theme="dungeon"] h1 {
+    text-shadow: 2px 2px 0 #000, 0 0 14px var(--pink), 0 0 26px var(--hot);
+  }
+  [data-theme="dungeon"] body::before {
+    mix-blend-mode: multiply;
+    opacity: 0.85;
+  }
+  [data-theme="dungeon"] .column,
+  [data-theme="dungeon"] .modal,
+  [data-theme="dungeon"] .auth-card {
+    background-image: var(--panel-texture);
+    background-color: var(--panel);
+  }
+  [data-theme="dungeon"] .column-header { color: var(--header-ink); text-shadow: 1px 1px 0 #000; }
+  [data-theme="dungeon"] .column-name { color: var(--pink-soft); }
+  [data-theme="dungeon"] .col-handle { color: var(--pink-soft); }
+  [data-theme="dungeon"] .tab .x { color: #1a0f06; }
+  [data-theme="dungeon"] button.btn { color: #1a0f06; }
+  [data-theme="dungeon"] .tab.active { color: #1a0f06; }
+  [data-theme="dungeon"] .priority.low,
+  [data-theme="dungeon"] .priority.medium,
+  [data-theme="dungeon"] .priority { color: #1a0f06; }
+  [data-theme="dungeon"] .public-badge,
+  [data-theme="dungeon"] .private-badge { color: #1a0f06; }
+  [data-theme="dungeon"] .tag { color: #1a0f06; }
+  [data-theme="dungeon"] .due { background: #06070d; }
+  [data-theme="dungeon"] .column-count { background: #06070d; color: var(--pink-soft); }
+  [data-theme="dungeon"] .icon-btn { background: #06070d; color: var(--pink-soft); }
+  [data-theme="dungeon"] .icon-btn:hover { background: var(--pink); color: #1a0f06; }
+  [data-theme="dungeon"] .card .cobweb svg g { stroke: #d8d0b8; }
+  /* Flickering candles in the corners */
+  [data-theme="dungeon"] body::after {
+    content: '';
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 999;
+    background:
+      radial-gradient(circle at 4% 18%, rgba(255,140,66,0.18) 0%, transparent 14%),
+      radial-gradient(circle at 96% 22%, rgba(255,140,66,0.15) 0%, transparent 12%),
+      radial-gradient(circle at 8% 88%, rgba(255,140,66,0.14) 0%, transparent 14%),
+      radial-gradient(circle at 92% 84%, rgba(255,140,66,0.18) 0%, transparent 12%);
+    animation: candle-flicker 3.2s ease-in-out infinite;
+  }
+  @keyframes candle-flicker {
+    0%, 100% { opacity: 0.9; }
+    23%      { opacity: 0.65; }
+    47%      { opacity: 1.0; }
+    58%      { opacity: 0.75; }
+    79%      { opacity: 0.95; }
   }
 
   * { box-sizing: border-box; }
@@ -31,10 +117,7 @@
     margin: 0;
     font-family: 'Space Mono', 'VT323', monospace;
     color: var(--ink);
-    background:
-      linear-gradient(rgba(26,7,35,0.90), rgba(26,7,35,0.90)),
-      repeating-linear-gradient(0deg, transparent 0 2px, rgba(255,62,170,0.05) 2px 3px),
-      radial-gradient(ellipse at top, #4a1968 0%, #1a0723 60%);
+    background: var(--body-grad);
     background-attachment: fixed;
     min-height: 100vh;
     overflow-x: hidden;
@@ -44,7 +127,7 @@
     content: '';
     position: fixed; inset: 0;
     pointer-events: none;
-    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0 1px, transparent 1px 3px);
+    background: var(--scanlines);
     z-index: 1000;
     mix-blend-mode: multiply;
   }
@@ -190,8 +273,8 @@
   }
   .column-header {
     padding: 10px 12px;
-    background: linear-gradient(90deg, var(--pink), var(--hot));
-    color: #1a0723;
+    background: var(--header-grad);
+    color: var(--header-ink);
     display: flex; align-items: center; gap: 8px;
     border-bottom: 2px solid #000;
   }
@@ -594,6 +677,7 @@
     <div class="board-tabs" id="boardTabs"></div>
     <div class="header-actions">
       <span class="user-chip" id="userChip"></span>
+      <button class="btn ghost" id="themeBtn" title="Switch theme">🕯️</button>
       <button class="btn ghost" id="newBoardBtn">+ Board</button>
       <button class="btn ghost" id="signoutBtn">Sign out</button>
     </div>
@@ -708,6 +792,24 @@
   const SUPABASE_URL = 'https://sjtxuegjdukjdobsxnhs.supabase.co';
   const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_YUZolKOL68u_n2SY1s2O8A_GJQjKwY0';
   const LEGACY_KEY = 'pink-kanban:v1';
+  const THEME_KEY = 'bones:theme';
+
+  // ---------- Theme ----------
+  const THEMES = ['pink', 'dungeon'];
+  function applyTheme(t) {
+    if (!THEMES.includes(t)) t = 'pink';
+    if (t === 'pink') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', t);
+    try { localStorage.setItem(THEME_KEY, t); } catch (_) {}
+    const btn = document.getElementById('themeBtn');
+    if (btn) {
+      // Show the icon for the theme you'd switch TO
+      btn.textContent = t === 'dungeon' ? '🌸' : '🕯️';
+      btn.title = t === 'dungeon' ? 'Switch to pink retro' : 'Switch to dungeon';
+    }
+  }
+  // Apply saved theme immediately so the auth screen renders correctly
+  applyTheme(localStorage.getItem(THEME_KEY) || 'pink');
 
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
@@ -793,6 +895,16 @@
     boards = []; activeBoardId = null;
     if (realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
   });
+
+  // Theme toggle — cycle through THEMES
+  $('themeBtn').addEventListener('click', () => {
+    const cur = localStorage.getItem(THEME_KEY) || 'pink';
+    const next = THEMES[(THEMES.indexOf(cur) + 1) % THEMES.length];
+    applyTheme(next);
+    toast(next === 'dungeon' ? '🕯️ dungeon mode' : '🌸 pink retro');
+  });
+  // Re-apply theme so the button gets its initial label (themeBtn wasn't in DOM at script init time)
+  applyTheme(localStorage.getItem(THEME_KEY) || 'pink');
 
   // ---------- Board CRUD ----------
   async function loadBoards() {
