@@ -1303,11 +1303,6 @@
     });
     const totalCards = cols.reduce((n, c) => n + (c.cards || []).length, 0);
 
-    const meta = document.createElement('span');
-    meta.className = 'swimlane-meta';
-    meta.textContent = totalCards + ' card' + (totalCards === 1 ? '' : 's') + ' · ' + cols.length + ' column' + (cols.length === 1 ? '' : 's');
-    header.appendChild(meta);
-
     if (editable && (board.data.swimlanes || []).length > 1) {
       const del = document.createElement('button');
       del.className = 'btn ghost swimlane-delete';
@@ -1437,10 +1432,6 @@
       });
     }
 
-    const count = document.createElement('div');
-    count.className = 'column-count';
-    count.textContent = (col.cards || []).length;
-
     const actions = document.createElement('div');
     actions.className = 'column-actions';
     if (editable) {
@@ -1456,7 +1447,6 @@
     }
 
     header.appendChild(name);
-    header.appendChild(count);
     header.appendChild(actions);
     wrap.appendChild(header);
 
