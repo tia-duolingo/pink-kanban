@@ -27,8 +27,8 @@
     --body-grad: linear-gradient(rgba(26,7,35,0.90), rgba(26,7,35,0.90)), repeating-linear-gradient(0deg, transparent 0 2px, rgba(255,62,170,0.05) 2px 3px), radial-gradient(ellipse at top, #4a1968 0%, #1a0723 60%);
     --scanlines: repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0 1px, transparent 1px 3px);
     --panel-texture: none;
-    --header-grad: linear-gradient(90deg, var(--pink), var(--hot));
-    --header-ink: #1a0723;
+    --header-grad: linear-gradient(180deg, var(--panel-2) 0%, var(--panel) 100%);
+    --header-ink: var(--pink-soft);
   }
 
   /* ---------- Dungeon Theme ---------- */
@@ -283,7 +283,7 @@
     font-family: 'VT323', monospace;
     font-size: 18px;
     line-height: 1;
-    color: #1a0723;
+    color: var(--header-ink);
     padding: 0 2px;
     user-select: none;
     opacity: 0.7;
