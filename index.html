@@ -271,6 +271,45 @@
   .card.color-green  { background: rgba(125,255,172,0.15); border-color: var(--green); }
   .card.color-red    { background: rgba(255,0,128,0.18); border-color: var(--hot); }
   .card.color-purple { background: rgba(155,89,255,0.18); border-color: #b388ff; }
+
+  /* Cobweb (stale cards) */
+  .card .cobweb {
+    position: absolute; top: -4px; right: -4px;
+    font-size: 22px;
+    pointer-events: none;
+    animation: cobweb-drift 4s ease-in-out infinite;
+    text-shadow: 0 0 6px rgba(255,255,255,0.4);
+    z-index: 1;
+  }
+  @keyframes cobweb-drift {
+    0%, 100% { opacity: 0.85; transform: rotate(0deg); }
+    50%      { opacity: 1; transform: rotate(-4deg); }
+  }
+  .card.dusting { overflow: visible; }
+  .card.dusting .cobweb {
+    animation: cobweb-puff 0.8s ease-in forwards;
+  }
+  @keyframes cobweb-puff {
+    0%   { opacity: 1; transform: scale(1) rotate(0deg); }
+    50%  { opacity: 0.6; transform: scale(0.7) rotate(15deg); }
+    100% { opacity: 0; transform: scale(0.2) rotate(45deg); }
+  }
+  .card .broom {
+    position: absolute;
+    top: 50%; right: -36px;
+    font-size: 30px;
+    transform: translateY(-50%);
+    pointer-events: none;
+    animation: broom-sweep 0.8s ease-in-out forwards;
+    z-index: 2;
+    filter: drop-shadow(0 0 6px var(--pink));
+  }
+  @keyframes broom-sweep {
+    0%   { right: -36px; opacity: 0; transform: translateY(-50%) rotate(20deg); }
+    15%  { opacity: 1; }
+    85%  { opacity: 1; }
+    100% { right: calc(100% + 10px); opacity: 0; transform: translateY(-50%) rotate(-30deg); }
+  }
   .card:active { cursor: grabbing; }
   .card.dragging { opacity: 0.4; }
   .card-title {
@@ -607,6 +646,10 @@
     <div class="field">
       <label for="cardTags">Tags (comma separated)</label>
       <input id="cardTags" type="text" placeholder="urgent, design, q2" />
+    </div>
+    <div class="field" style="display:flex;align-items:center;gap:8px;">
+      <input id="cardCobweb" type="checkbox" style="width:auto;margin:0;cursor:pointer;" />
+      <label for="cardCobweb" style="margin:0;cursor:pointer;">🕸️ Force cobweb</label>
     </div>
     <div class="modal-actions">
       <button class="btn danger" id="deleteCardBtn">Delete</button>
@@ -1144,7 +1187,7 @@
         const title = await customPrompt('New Card', 'Card title');
         if (!title) return;
         col.cards = col.cards || [];
-        col.cards.push({ id: uid(), title, description: '', due: '', tags: [] });
+        col.cards.push({ id: uid(), title, description: '', due: '', tags: [], createdAt: Date.now() });
         saveBoardSoon(board); render();
       });
       wrap.appendChild(addCardBtn);
@@ -1154,11 +1197,28 @@
   }
 
   function renderCard(board, col, card, editable) {
+    // Backfill createdAt for legacy cards
+    if (!card.createdAt) card.createdAt = Date.now();
+
     const el = document.createElement('div');
     el.className = 'card';
     if (card.priority) el.classList.add('prio-' + card.priority);
     if (card.color && card.color !== 'default') el.classList.add('color-' + card.color);
     el.draggable = editable;
+
+    // Cobweb logic — manual force OR (older than 2 weeks AND not in Done)
+    const inDone = (col.name || '').trim().toLowerCase() === 'done';
+    const TWO_WEEKS = 14 * 24 * 60 * 60 * 1000;
+    const ageMs = Date.now() - (card.createdAt || Date.now());
+    const autoCobweb = !inDone && ageMs > TWO_WEEKS;
+    const showCobweb = card.cobweb === true || autoCobweb;
+    const isManualCobweb = card.cobweb === true;
+    if (showCobweb) {
+      const web = document.createElement('div');
+      web.className = 'cobweb';
+      web.textContent = '🕸️';
+      el.appendChild(web);
+    }
 
     const t = document.createElement('div');
     t.className = 'card-title';
@@ -1203,7 +1263,23 @@
     }
 
     if (editable) {
-      el.addEventListener('click', () => openCardModal(board, col, card));
+      el.addEventListener('click', () => {
+        // First click on auto-cobwebbed card: dust it off, don't open modal
+        if (showCobweb && !isManualCobweb) {
+          const broom = document.createElement('div');
+          broom.className = 'broom';
+          broom.textContent = '🧹';
+          el.appendChild(broom);
+          el.classList.add('dusting');
+          setTimeout(() => {
+            card.createdAt = Date.now();  // reset age
+            saveBoardSoon(board);
+            render();
+          }, 800);
+          return;
+        }
+        openCardModal(board, col, card);
+      });
       el.addEventListener('dragstart', (e) => {
         el.classList.add('dragging');
         e.dataTransfer.setData('text/plain', JSON.stringify({ cardId: card.id, fromColId: col.id }));
@@ -1283,6 +1359,7 @@
   const cardTagsInp = $('cardTags');
   const cardPriorityInp = $('cardPriority');
   const cardSwatches = $('cardSwatches');
+  const cardCobwebInp = $('cardCobweb');
   let editingRef = null;
   let pickedColor = 'default';
 
@@ -1300,6 +1377,7 @@
     cardDueInp.value = card.due || '';
     cardTagsInp.value = (card.tags || []).join(', ');
     cardPriorityInp.value = card.priority || '';
+    cardCobwebInp.checked = card.cobweb === true;
     pickedColor = card.color || 'default';
     [...cardSwatches.children].forEach(c => c.classList.toggle('selected', c.dataset.color === pickedColor));
     cardModal.classList.add('show');
@@ -1316,6 +1394,7 @@
     card.tags = cardTagsInp.value.split(',').map(s => s.trim()).filter(Boolean);
     card.priority = cardPriorityInp.value || '';
     card.color = pickedColor === 'default' ? '' : pickedColor;
+    card.cobweb = cardCobwebInp.checked === true;
     saveBoardSoon(board); render(); closeCardModal(); toast('card saved');
   });
   $('deleteCardBtn').addEventListener('click', () => {
