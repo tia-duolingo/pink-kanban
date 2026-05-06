@@ -215,7 +215,9 @@
   button.btn, .btn {
     font-family: 'VT323', monospace;
     font-size: 18px;
-    padding: 6px 14px;
+    line-height: 1;
+    padding: 0 14px;
+    height: 32px;
     background: var(--pink);
     color: #1a0723;
     border: 2px solid #000;
@@ -224,6 +226,11 @@
     text-transform: uppercase;
     letter-spacing: 1px;
     transition: transform 0.05s ease, box-shadow 0.05s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    vertical-align: middle;
   }
   button.btn:hover, .btn:hover { background: var(--pink-2); }
   button.btn:active, .btn:active {
