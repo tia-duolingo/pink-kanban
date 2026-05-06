@@ -261,7 +261,61 @@
     letter-spacing: 1px;
   }
 
-  .columns { display: flex; gap: 18px; align-items: flex-start; min-height: 60vh; }
+  .columns { display: flex; flex-direction: column; gap: 22px; min-height: 60vh; }
+
+  /* ---------- Swimlanes ---------- */
+  .swimlane { display: flex; flex-direction: column; gap: 10px; }
+  .swimlane-header {
+    display: flex; align-items: center; gap: 14px;
+    flex-wrap: wrap;
+  }
+  .swimlane-toggle {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 14px;
+    color: var(--pink-soft);
+    text-shadow: 2px 2px 0 #000;
+    cursor: pointer;
+    user-select: none;
+    display: inline-block;
+    transition: transform 0.18s ease;
+    line-height: 1;
+    padding: 2px 4px;
+  }
+  .swimlane-toggle:hover { color: #fff; }
+  .swimlane:not(.collapsed) .swimlane-toggle { transform: rotate(90deg); }
+  .swimlane-name {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 14px; color: var(--pink-soft);
+    text-shadow: 2px 2px 0 #000; margin: 0;
+    outline: none;
+    cursor: text;
+    word-break: break-word;
+  }
+  .swimlane-name[contenteditable="true"]:focus {
+    background: rgba(255,62,170,0.15);
+  }
+  .swimlane-meta { font-size: 14px; color: var(--pink-soft); opacity: 0.7; }
+  .swimlane-delete { font-size: 13px !important; padding: 2px 8px !important; }
+  .swimlane-cols {
+    display: flex; gap: 18px; align-items: flex-start;
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+  .swimlane.collapsed .swimlane-cols { display: none; }
+  .add-swimlane {
+    align-self: flex-start;
+    padding: 8px 16px;
+    border: 2px dashed var(--pink);
+    background: transparent;
+    color: var(--pink-soft);
+    cursor: pointer;
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+  .add-swimlane:hover { background: rgba(255,62,170,0.15); color: #fff; }
 
   .column {
     background: var(--panel);
@@ -628,7 +682,7 @@
   @media (max-width: 640px) {
     h1 { font-size: 14px; }
     main { padding: 14px; }
-    .columns { flex-direction: column; }
+    .swimlane-cols { flex-direction: column; }
     .column, .add-column { width: 100%; min-width: 0; }
   }
 
@@ -931,11 +985,16 @@
     const newBoard = {
       owner_id: me.id,
       name,
-      data: { columns: [
-        { id: uid(), name: 'To Do', cards: [] },
-        { id: uid(), name: 'Doing', cards: [] },
-        { id: uid(), name: 'Done', cards: [] },
-      ]},
+      data: { swimlanes: [{
+        id: uid(),
+        name: 'Main',
+        collapsed: false,
+        columns: [
+          { id: uid(), name: 'To Do', cards: [] },
+          { id: uid(), name: 'Doing', cards: [] },
+          { id: uid(), name: 'Done', cards: [] },
+        ]
+      }]},
       is_public: false,
     };
     const { data, error } = await sb.from('boards').insert(newBoard).select().single();
@@ -1104,10 +1163,10 @@
     boardVisEl.innerHTML = '';
     toggleVisBtn.hidden = true;
     readOnlyBanner.hidden = true;
+    boardTitleEl.textContent = '';
+    boardMetaEl.textContent = '';
 
     if (!board) {
-      boardTitleEl.textContent = '> No boards';
-      boardMetaEl.textContent = '';
       const empty = document.createElement('div');
       empty.className = 'empty-state';
       empty.textContent = 'no boards yet — hit "+ Board" to start';
@@ -1115,18 +1174,21 @@
       return;
     }
 
-    boardTitleEl.textContent = '> ' + board.name;
-    const cols = (board.data && board.data.columns) || [];
-    // Auto-sort cards by priority: high → medium → low → none (stable)
-    cols.forEach(col => {
-      if (!col.cards) return;
-      const rank = (p) => p === 'high' ? 0 : p === 'medium' ? 1 : p === 'low' ? 2 : 3;
-      const indexed = col.cards.map((c, i) => ({c, i}));
-      indexed.sort((a, b) => (rank(a.c.priority) - rank(b.c.priority)) || (a.i - b.i));
-      col.cards = indexed.map(x => x.c);
-    });
-    const totalCards = cols.reduce((n, c) => n + (c.cards || []).length, 0);
-    boardMetaEl.textContent = totalCards + ' card' + (totalCards === 1 ? '' : 's') + ' · ' + cols.length + ' columns';
+    // Migrate legacy { columns: [...] } → { swimlanes: [{ name: board.name, columns }] }
+    if (board.data && board.data.columns && !board.data.swimlanes) {
+      board.data.swimlanes = [{
+        id: uid(),
+        name: board.name || 'Main',
+        collapsed: false,
+        columns: board.data.columns
+      }];
+      delete board.data.columns;
+      saveBoardSoon(board);
+    }
+    if (!board.data) board.data = {};
+    if (!board.data.swimlanes) board.data.swimlanes = [];
+
+    const lanes = board.data.swimlanes;
 
     const badge = document.createElement('span');
     badge.className = board.is_public ? 'public-badge' : 'private-badge';
@@ -1142,7 +1204,99 @@
 
     const editable = canEdit(board);
 
-    cols.forEach(col => columnsEl.appendChild(renderColumn(board, col, editable)));
+    lanes.forEach(lane => columnsEl.appendChild(renderSwimlane(board, lane, editable)));
+
+    if (editable) {
+      const addLane = document.createElement('button');
+      addLane.className = 'add-swimlane';
+      addLane.textContent = '+ ADD SWIMLANE';
+      addLane.addEventListener('click', async () => {
+        const name = await customPrompt('New Swimlane', 'Swimlane name');
+        if (!name) return;
+        lanes.push({ id: uid(), name, collapsed: false, columns: [] });
+        saveBoardSoon(board); render();
+      });
+      columnsEl.appendChild(addLane);
+    }
+  }
+
+  function renderSwimlane(board, lane, editable) {
+    const wrap = document.createElement('div');
+    wrap.className = 'swimlane' + (lane.collapsed ? ' collapsed' : '');
+    wrap.dataset.laneId = lane.id;
+
+    const header = document.createElement('div');
+    header.className = 'swimlane-header';
+
+    const toggle = document.createElement('span');
+    toggle.className = 'swimlane-toggle';
+    toggle.textContent = '>';
+    toggle.title = lane.collapsed ? 'Expand' : 'Collapse';
+    toggle.addEventListener('click', () => {
+      lane.collapsed = !lane.collapsed;
+      saveBoardSoon(board); render();
+    });
+    header.appendChild(toggle);
+
+    const name = document.createElement('h2');
+    name.className = 'swimlane-name';
+    name.textContent = lane.name;
+    if (editable) {
+      name.title = 'Click to rename';
+      name.addEventListener('click', () => {
+        name.contentEditable = 'true';
+        name.focus();
+        const range = document.createRange();
+        range.selectNodeContents(name);
+        const sel = window.getSelection();
+        sel.removeAllRanges(); sel.addRange(range);
+      });
+      name.addEventListener('blur', () => {
+        name.contentEditable = 'false';
+        const txt = name.textContent.trim() || lane.name;
+        lane.name = txt; name.textContent = txt;
+        saveBoardSoon(board);
+      });
+      name.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); name.blur(); }
+      });
+    }
+    header.appendChild(name);
+
+    const cols = lane.columns || [];
+    // Auto-sort cards by priority within each column
+    cols.forEach(col => {
+      if (!col.cards) return;
+      const rank = (p) => p === 'high' ? 0 : p === 'medium' ? 1 : p === 'low' ? 2 : 3;
+      const indexed = col.cards.map((c, i) => ({c, i}));
+      indexed.sort((a, b) => (rank(a.c.priority) - rank(b.c.priority)) || (a.i - b.i));
+      col.cards = indexed.map(x => x.c);
+    });
+    const totalCards = cols.reduce((n, c) => n + (c.cards || []).length, 0);
+
+    const meta = document.createElement('span');
+    meta.className = 'swimlane-meta';
+    meta.textContent = totalCards + ' card' + (totalCards === 1 ? '' : 's') + ' · ' + cols.length + ' column' + (cols.length === 1 ? '' : 's');
+    header.appendChild(meta);
+
+    if (editable && (board.data.swimlanes || []).length > 1) {
+      const del = document.createElement('button');
+      del.className = 'btn ghost swimlane-delete';
+      del.textContent = '✕';
+      del.title = 'Delete swimlane';
+      del.addEventListener('click', () => {
+        if (totalCards > 0 && !confirm('Delete swimlane "' + lane.name + '" and its ' + totalCards + ' card(s)?')) return;
+        board.data.swimlanes = board.data.swimlanes.filter(l => l.id !== lane.id);
+        saveBoardSoon(board); render();
+      });
+      header.appendChild(del);
+    }
+
+    wrap.appendChild(header);
+
+    const colsEl = document.createElement('div');
+    colsEl.className = 'swimlane-cols';
+    cols.forEach(col => colsEl.appendChild(renderColumn(board, lane, col, editable)));
 
     if (editable) {
       const addCol = document.createElement('button');
@@ -1150,19 +1304,24 @@
       addCol.textContent = '+';
       addCol.title = 'Add column';
       addCol.addEventListener('click', async () => {
-        const name = await customPrompt('New Column', 'Column name');
-        if (!name) return;
-        cols.push({ id: uid(), name, cards: [] });
+        const cname = await customPrompt('New Column', 'Column name');
+        if (!cname) return;
+        lane.columns = lane.columns || [];
+        lane.columns.push({ id: uid(), name: cname, cards: [] });
         saveBoardSoon(board); render();
       });
-      columnsEl.appendChild(addCol);
+      colsEl.appendChild(addCol);
     }
+
+    wrap.appendChild(colsEl);
+    return wrap;
   }
 
-  function renderColumn(board, col, editable) {
+  function renderColumn(board, lane, col, editable) {
     const wrap = document.createElement('div');
     wrap.className = 'column';
     wrap.dataset.colId = col.id;
+    wrap.dataset.laneId = lane.id;
 
     const header = document.createElement('div');
     header.className = 'column-header';
@@ -1214,10 +1373,10 @@
       wrap.classList.remove('col-drop-before');
       wrap.classList.remove('col-drop-after');
       if (!fromId || fromId === col.id) return;
-      const cols = board.data.columns;
+      const cols = lane.columns;
       const fromIdx = cols.findIndex(c => c.id === fromId);
       let toIdx = cols.findIndex(c => c.id === col.id);
-      if (fromIdx === -1 || toIdx === -1) return;
+      if (fromIdx === -1 || toIdx === -1) return; // column drag is scoped to its swimlane
       const [moved] = cols.splice(fromIdx, 1);
       if (fromIdx < toIdx) toIdx--;
       if (!before) toIdx++;
@@ -1261,7 +1420,7 @@
       delBtn.textContent = '✕'; delBtn.title = 'Delete column';
       delBtn.addEventListener('click', () => {
         if ((col.cards || []).length && !confirm('Delete column "' + col.name + '" and its ' + col.cards.length + ' card(s)?')) return;
-        board.data.columns = board.data.columns.filter(c => c.id !== col.id);
+        lane.columns = lane.columns.filter(c => c.id !== col.id);
         saveBoardSoon(board); render();
       });
       actions.appendChild(delBtn);
@@ -1491,9 +1650,9 @@
   }
 
   function moveCard(board, cardId, fromColId, toColId, insertIdx) {
-    const cols = board.data.columns;
-    const fromCol = cols.find(c => c.id === fromColId);
-    const toCol = cols.find(c => c.id === toColId);
+    const allCols = (board.data.swimlanes || []).flatMap(l => l.columns || []);
+    const fromCol = allCols.find(c => c.id === fromColId);
+    const toCol = allCols.find(c => c.id === toColId);
     if (!fromCol || !toCol) return;
     const idx = (fromCol.cards || []).findIndex(c => c.id === cardId);
     if (idx === -1) return;
