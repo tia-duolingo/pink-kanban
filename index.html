@@ -186,6 +186,23 @@
   .tab .x:hover { opacity: 1; }
 
   .header-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+
+  /* Burger menu */
+  .menu-wrap { position: relative; display: inline-block; }
+  .menu-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: var(--panel);
+    border: 2px solid var(--pink);
+    box-shadow: 4px 4px 0 #000;
+    padding: 12px;
+    min-width: 220px;
+    display: none;
+    z-index: 60;
+  }
+  .menu-panel.open { display: flex; flex-direction: column; gap: 10px; }
+  .menu-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .user-chip {
     font-family: 'VT323', monospace;
     font-size: 16px;
@@ -732,18 +749,21 @@
     <div class="header-actions">
       <span class="user-chip" id="userChip"></span>
       <button class="btn ghost" id="themeBtn" title="Switch theme">🕯️</button>
+      <div class="menu-wrap">
+        <button class="btn ghost" id="menuBtn" title="Board menu" aria-haspopup="true" aria-expanded="false">☰</button>
+        <div class="menu-panel" id="menuPanel">
+          <div class="menu-row">
+            <span id="boardVis"></span>
+            <button class="btn ghost" id="toggleVisBtn" hidden>Make public</button>
+          </div>
+        </div>
+      </div>
       <button class="btn ghost" id="newBoardBtn">+ Board</button>
       <button class="btn ghost" id="signoutBtn">Sign out</button>
     </div>
   </header>
 
   <main>
-    <div class="board-title-row">
-      <h2 class="board-title" id="boardTitle">—</h2>
-      <span class="board-meta" id="boardMeta"></span>
-      <span id="boardVis"></span>
-      <button class="btn ghost" id="toggleVisBtn" hidden>Make public</button>
-    </div>
     <div id="readOnlyBanner" class="read-only-banner" hidden>
       ★ Read-only — this is someone else's private board, or you're not signed in as the owner.
     </div>
@@ -1112,8 +1132,6 @@
   // ---------- Render ----------
   const tabsEl = $('boardTabs');
   const columnsEl = $('columns');
-  const boardTitleEl = $('boardTitle');
-  const boardMetaEl = $('boardMeta');
   const boardVisEl = $('boardVis');
   const toggleVisBtn = $('toggleVisBtn');
   const readOnlyBanner = $('readOnlyBanner');
@@ -1163,8 +1181,6 @@
     boardVisEl.innerHTML = '';
     toggleVisBtn.hidden = true;
     readOnlyBanner.hidden = true;
-    boardTitleEl.textContent = '';
-    boardMetaEl.textContent = '';
 
     if (!board) {
       const empty = document.createElement('div');
@@ -1779,6 +1795,28 @@
   toggleVisBtn.addEventListener('click', () => {
     const b = activeBoard();
     if (b) togglePublic(b);
+    closeMenu();
+  });
+
+  // ---------- Burger menu ----------
+  const menuBtn = $('menuBtn');
+  const menuPanel = $('menuPanel');
+  function openMenu() {
+    menuPanel.classList.add('open');
+    menuBtn.setAttribute('aria-expanded', 'true');
+  }
+  function closeMenu() {
+    menuPanel.classList.remove('open');
+    menuBtn.setAttribute('aria-expanded', 'false');
+  }
+  menuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (menuPanel.classList.contains('open')) closeMenu(); else openMenu();
+  });
+  document.addEventListener('click', (e) => {
+    if (!menuPanel.classList.contains('open')) return;
+    if (e.target === menuBtn || menuPanel.contains(e.target)) return;
+    closeMenu();
   });
 
   // ---------- Custom input modal (themed replacement for prompt) ----------
@@ -1812,6 +1850,7 @@
       if (cardModal.classList.contains('show')) closeCardModal();
       if (boardModal.classList.contains('show')) closeBoardModal();
       if (inputModal.classList.contains('show')) closeInputModal(null);
+      if (menuPanel.classList.contains('open')) closeMenu();
     }
   });
 
