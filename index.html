@@ -264,17 +264,6 @@
     line-height: 1.35;
     position: relative;
   }
-  /* Priority left-edge stripe */
-  .card.prio-low::before,
-  .card.prio-medium::before,
-  .card.prio-high::before {
-    content: '';
-    position: absolute; left: -2px; top: -2px; bottom: -2px; width: 6px;
-    border-radius: 0;
-  }
-  .card.prio-low::before    { background: var(--cyan);   box-shadow: 0 0 8px var(--cyan); }
-  .card.prio-medium::before { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); }
-  .card.prio-high::before   { background: var(--hot);    box-shadow: 0 0 10px var(--hot); }
   /* Color presets */
   .card.color-pink   { background: rgba(255,62,170,0.18); border-color: var(--pink); }
   .card.color-cyan   { background: rgba(111,233,255,0.15); border-color: var(--cyan); }
